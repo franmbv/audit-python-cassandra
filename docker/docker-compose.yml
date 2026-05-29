@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  cassandra-local:
+    image: cassandra:latest
+    container_name: museo-cassandra-nodo
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=ClusterMuseoUNEG
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    restart: always
+
+volumes:
+  cassandra-data:

@@ -1,0 +1,3 @@
+El comando para correr docker:
+
+docker compose -f docker/docker-compose.yml up -d
