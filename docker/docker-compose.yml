@@ -11,6 +11,27 @@ services:
     volumes:
       - cassandra-data:/var/lib/cassandra
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESC KEYSPACES'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Contenedor auxiliar temporal (Tarea de Franner para automatizar el Keyspace)
+  cassandra-init-db:
+    image: cassandra:latest
+    container_name: museo-cassandra-init
+    volumes:
+      - ../scripts:/opt/scripts
+    depends_on:
+      cassandra-local:
+        condition: service_healthy
+    command: >
+      /bin/bash -c "
+        echo 'Inyectando script de inicialización NoSQL...' &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/01_init_keyspace.cql
+      "
+    restart: no
 
 volumes:
   cassandra-data:
