@@ -1,13 +1,13 @@
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
+from typing import Optional
+from cassandra.cluster import Cluster, Session
 import logging
 
 logger = logging.getLogger("cassandra")
 
 class CassandraConfig:
     def __init__(self):
-        self.cluster = None
-        self.session = None
+        self.cluster: Optional[Cluster] = None
+        self.session: Optional[Session] = None
         self.keyspace = "museo_auditoria"
 
     def conectar(self):
