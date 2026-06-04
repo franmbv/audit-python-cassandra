@@ -35,7 +35,9 @@ services:
         echo 'Inyectando scripts de inicialización NoSQL...' &&
         cqlsh cassandra-local 9042 -f /opt/scripts/01_init_keyspace.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/03_table_seguridad.cql &&
-        cqlsh cassandra-local 9042 -f /opt/scripts/seed_seguridad.cql  # Ejecuta seed con datos de prueba
+        cqlsh cassandra-local 9042 -f /opt/scripts/04_table_membresias.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_seguridad.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_membresias.cql
       "
     restart: no
     networks:

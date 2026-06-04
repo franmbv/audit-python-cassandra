@@ -1,0 +1,10 @@
+{
+  "usuario_id": 1,
+  "fecha_evento": "2026-06-04T12:00:00Z",
+  "ip_origen": "127.0.0.1",
+  "id_comprador": "8a6cf3f7-1f2d-4df6-9c63-6d7f0b9c2a11",
+  "codigo_seguridad": "MK8X2Q9Z",
+  "correo_envio": "comprador@correo.com",
+  "fecha_registro": "2026-06-04T12:00:00Z",
+  "estado": "EMITIDO"
+}
