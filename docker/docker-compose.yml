@@ -37,8 +37,10 @@ services:
         cqlsh cassandra-local 9042 -f /opt/scripts/01_init_keyspace.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/02_table_obras.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/03_table_seguridad.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/04_table_membresias.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/seed_seguridad.cql &&
-        cqlsh cassandra-local 9042 -f /opt/scripts/seed_obras.cql  # Ejecuta seed con datos de prueba
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_obras.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_membresias.cql
       "
     restart: no
     networks:
