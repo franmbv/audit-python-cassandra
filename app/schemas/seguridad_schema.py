@@ -1,6 +1,12 @@
+from enum import Enum
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, field_validator
 from app.schemas.audit_schemas import AuditBaseSchema
+
+
+class SeguridadEvento(str, Enum):
+    LOGIN_EXITOSO = "LOGIN_EXITOSO"
+    LOGIN_FALLIDO = "LOGIN_FALLIDO"
 
 
 class SeguridadSchema(AuditBaseSchema):
@@ -10,11 +16,16 @@ class SeguridadSchema(AuditBaseSchema):
         examples=["jperez"]
     )
 
-    evento_tipo: str = Field(
+    evento_tipo: SeguridadEvento = Field(
         ...,
-        description="Tipo de evento de seguridad (LOGIN_EXITOSO, LOGIN_FALLIDO, etc.)",
+        description="Tipo de evento de seguridad (LOGIN_EXITOSO, LOGIN_FALLIDO)",
         examples=["LOGIN_EXITOSO"]
     )
+
+    @field_validator("evento_tipo", mode="before")
+    @classmethod
+    def upper_evento(cls, v: str) -> str:
+        return v.upper()
 
     detalles: Optional[str] = Field(
         default=None,
