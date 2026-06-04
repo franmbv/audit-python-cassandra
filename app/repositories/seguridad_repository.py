@@ -25,6 +25,13 @@ class SeguridadRepositorio:
             "(login_usuario, fecha_evento, accion, ip_origen, detalles, usuario_id) "
             "VALUES (?, ?, ?, ?, ?, ?)"
         )
+        self._query_por_usuario = await asyncio.to_thread(
+            session.prepare,
+            "SELECT login_usuario, fecha_evento, accion, ip_origen, detalles, usuario_id "
+            "FROM bitacora_seguridad "
+            "WHERE login_usuario = ? AND fecha_evento >= ? AND fecha_evento <= ? "
+            "ORDER BY fecha_evento ASC"
+        )
 
     async def insertar_log(self, datos: SeguridadSchema) -> None:
         await self._inicializar()
@@ -56,5 +63,44 @@ class SeguridadRepositorio:
                 datos.login_usuario,
                 datos.evento_tipo,
                 e,
+            )
+            raise
+
+    async def obtener_logs_por_usuario(
+        self,
+        login_usuario: str,
+        desde: datetime,
+        hasta: datetime,
+    ) -> List[SeguridadSchema]:
+        await self._inicializar()
+        session = conexion_cassandra.session
+        assert session is not None, "Cassandra session no inicializada."
+        assert self._query_por_usuario is not None, "Prepared statement no inicializado."
+        try:
+            rows = await asyncio.to_thread(
+                session.execute,
+                self._query_por_usuario,
+                (login_usuario, desde, hasta),
+            )
+            resultados: List[SeguridadSchema] = [
+                SeguridadSchema(
+                    login_usuario=row.login_usuario,
+                    fecha_evento=row.fecha_evento,
+                    evento_tipo=row.accion,
+                    ip_origen=row.ip_origen,
+                    detalles=row.detalles,
+                    usuario_id=row.usuario_id,
+                )
+                for row in rows
+            ]
+            logger.info(
+                "Logs consultados: usuario=%s, desde=%s, hasta=%s, total=%d",
+                login_usuario, desde, hasta, len(resultados),
+            )
+            return resultados
+        except Exception as e:
+            logger.error(
+                "Error al consultar logs de seguridad: usuario=%s, error=%s",
+                login_usuario, e,
             )
             raise
