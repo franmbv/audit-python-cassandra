@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import Field
 from app.schemas.audit_schemas import AuditBaseSchema
 
@@ -15,6 +16,12 @@ class SeguridadSchema(AuditBaseSchema):
         examples=["LOGIN_EXITOSO"]
     )
 
+    detalles: Optional[str] = Field(
+        default=None,
+        description="Detalles adicionales del evento de seguridad",
+        examples=["Contrasena incorrecta", "Bloqueo por multiples intentos fallidos"]
+    )
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -22,7 +29,8 @@ class SeguridadSchema(AuditBaseSchema):
                 "fecha_evento": "2026-06-01T08:15:00Z",
                 "ip_origen": "192.168.1.10",
                 "login_usuario": "jperez",
-                "evento_tipo": "LOGIN_EXITOSO"
+                "evento_tipo": "LOGIN_EXITOSO",
+                "detalles": "Inicio de sesion exitoso"
             }
         }
     }
