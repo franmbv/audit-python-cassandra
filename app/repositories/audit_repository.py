@@ -2,7 +2,6 @@ import asyncio
 import base64
 import logging
 from typing import List, Optional, Tuple
-from uuid import UUID
 
 from cassandra.query import PreparedStatement
 
@@ -58,7 +57,7 @@ class AuditRepositorio:
 
     async def obtener_codigos_por_comprador(
         self,
-        id_comprador: UUID,
+        id_comprador: int,
         page_size: int = 20,
         paging_state: Optional[str] = None,
     ) -> Tuple[List[CodigoMembresiaSchema], Optional[str]]:
