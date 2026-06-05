@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from enum import Enum
-from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -10,10 +9,10 @@ class EstadoCodigoMembresia(str, Enum):
 
 
 class CodigoMembresiaSchema(BaseModel):
-    id_comprador: UUID = Field(
+    id_comprador: int = Field(
         ...,
         description="Identificador unico del comprador",
-        examples=["8a6cf3f7-1f2d-4df6-9c63-6d7f0b9c2a11"],
+        examples=[1],
     )
 
     codigo_seguridad: str = Field(
@@ -48,7 +47,7 @@ class CodigoMembresiaSchema(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "id_comprador": "8a6cf3f7-1f2d-4df6-9c63-6d7f0b9c2a11",
+                "id_comprador": 1,
                 "codigo_seguridad": "MK8X2Q9Z",
                 "correo_envio": "comprador@correo.com",
                 "fecha_registro": "2026-06-04T12:00:00Z",
