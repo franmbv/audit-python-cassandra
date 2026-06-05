@@ -15,13 +15,19 @@ COMPRADOR_TEST = 500
 @pytest.fixture
 def mock_reportes_repo(monkeypatch):
     class MockReportesRepositorio:
+        async def insertar_factura(self, datos):
+            pass
+        
+        async def insertar_membresia(self, datos):
+            pass
+
         async def obtener_reporte_facturacion(self, anio: int, mes: int):
             if anio == 2025 and mes == 1:
                 return [
                     ReporteFacturacionSchema(
                         anio=2025,
                         mes=1,
-                        id_factura=UUID("550e8400-e29b-41d4-a716-446655440001"),
+                        id_factura=1001,
                         fecha_emision=datetime.now(timezone.utc),
                         id_comprador=101,
                         monto_neto=150.0,
@@ -38,7 +44,7 @@ def mock_reportes_repo(monkeypatch):
                     ReporteMembresiaSchema(
                         anio=2025,
                         mes=1,
-                        id_membresia=UUID("550e8400-e29b-41d4-a716-446655440002"),
+                        id_membresia=2001,
                         fecha_registro=datetime.now(timezone.utc),
                         id_comprador=101,
                         codigo_membresia="MEM-2025-A001",
@@ -213,3 +219,39 @@ async def test_obtener_reporte_membresias(mock_reportes_repo):
         assert data[0]["anio"] == 2025
         assert data[0]["mes"] == 1
         assert data[0]["codigo_membresia"] == "MEM-2025-A001"
+
+@pytest.mark.asyncio
+async def test_post_reporte_facturacion(mock_reportes_repo):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        payload = {
+            "anio": 2025,
+            "mes": 1,
+            "id_factura": 1001,
+            "fecha_emision": datetime.now(timezone.utc).isoformat(),
+            "id_comprador": 101,
+            "monto_neto": 150.0,
+            "iva_calculado": 24.0,
+            "ganancia_museo": 45.0,
+            "estado": "pagada"
+        }
+        response = await client.post("/reportes/facturacion", json=payload)
+        assert response.status_code == 201
+        assert response.json()["mensaje"] == "Reporte de facturación insertado correctamente"
+
+@pytest.mark.asyncio
+async def test_post_reporte_membresia(mock_reportes_repo):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        payload = {
+            "anio": 2025,
+            "mes": 1,
+            "id_membresia": 2001,
+            "fecha_registro": datetime.now(timezone.utc).isoformat(),
+            "id_comprador": 101,
+            "codigo_membresia": "MEM-2025-A001",
+            "monto_cobrado": 10.0,
+            "estado": "activa"
+        }
+        response = await client.post("/reportes/membresias", json=payload)
+        assert response.status_code == 201
+        assert response.json()["mensaje"] == "Reporte de membresía insertado correctamente"
+
