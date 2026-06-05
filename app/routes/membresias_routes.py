@@ -2,14 +2,14 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
-from app.repositories.audit_repository import AuditRepositorio
+from app.repositories.membresias_repository import MembresiasRepositorio
 from app.schemas.membresias_schema import (
     CodigoMembresiaSchema,
     PaginaCodigoMembresiaSchema,
 )
 
 router = APIRouter(prefix="/membresias", tags=["Membresias"])
-repo = AuditRepositorio()
+repo = MembresiasRepositorio()
 
 
 @router.post(
