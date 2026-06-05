@@ -2,7 +2,6 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
 
 from main import app
 from app.schemas.obras_schema import ObrasSchema
