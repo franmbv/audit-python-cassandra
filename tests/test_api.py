@@ -8,8 +8,47 @@ from main import app
 from app.schemas.obras_schema import ObrasSchema
 from app.schemas.seguridad_schema import SeguridadSchema
 from app.schemas.membresias_schema import CodigoMembresiaSchema
+from app.schemas.reportes_schema import ReporteFacturacionSchema, ReporteMembresiaSchema
 
-COMPRADOR_TEST = UUID("550e8400-e29b-41d4-a716-446655440500")
+COMPRADOR_TEST = 500
+
+@pytest.fixture
+def mock_reportes_repo(monkeypatch):
+    class MockReportesRepositorio:
+        async def obtener_reporte_facturacion(self, anio: int, mes: int):
+            if anio == 2025 and mes == 1:
+                return [
+                    ReporteFacturacionSchema(
+                        anio=2025,
+                        mes=1,
+                        id_factura=UUID("550e8400-e29b-41d4-a716-446655440001"),
+                        fecha_emision=datetime.now(timezone.utc),
+                        id_comprador=101,
+                        monto_neto=150.0,
+                        iva_calculado=24.0,
+                        ganancia_museo=45.0,
+                        estado="pagada"
+                    )
+                ]
+            return []
+
+        async def obtener_reporte_membresias(self, anio: int, mes: int):
+            if anio == 2025 and mes == 1:
+                return [
+                    ReporteMembresiaSchema(
+                        anio=2025,
+                        mes=1,
+                        id_membresia=UUID("550e8400-e29b-41d4-a716-446655440002"),
+                        fecha_registro=datetime.now(timezone.utc),
+                        id_comprador=101,
+                        codigo_membresia="MEM-2025-A001",
+                        monto_cobrado=10.0,
+                        estado="activa"
+                    )
+                ]
+            return []
+
+    monkeypatch.setattr("app.routes.reportes_routes.repo", MockReportesRepositorio())
 
 @pytest.fixture
 def mock_obras_repo(monkeypatch):
@@ -61,7 +100,7 @@ def mock_membresias_repo(monkeypatch):
         async def insertar_codigo(self, datos):
             return datos
         
-        async def obtener_codigos_por_comprador(self, id_comprador: UUID, page_size: int = 20, paging_state: Optional[str] = None):
+        async def obtener_codigos_por_comprador(self, id_comprador: int, page_size: int = 20, paging_state: Optional[str] = None):
             if id_comprador == COMPRADOR_TEST:
                 return [
                     CodigoMembresiaSchema(
@@ -134,7 +173,7 @@ async def test_obtener_logs_seguridad(mock_seguridad_repo):
 async def test_registrar_codigo_membresia(mock_membresias_repo):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         payload = {
-            "id_comprador": str(COMPRADOR_TEST),
+            "id_comprador": COMPRADOR_TEST,
             "fecha_registro": datetime.now(timezone.utc).isoformat(),
             "codigo_seguridad": "SECRET123",
             "correo_envio": "test@example.com",
@@ -151,4 +190,26 @@ async def test_obtener_codigos_membresia(mock_membresias_repo):
         assert response.status_code == 200
         data = response.json()
         assert len(data["datos"]) == 1
-        assert data["datos"][0]["id_comprador"] == str(COMPRADOR_TEST)
+        assert data["datos"][0]["id_comprador"] == COMPRADOR_TEST
+
+@pytest.mark.asyncio
+async def test_obtener_reporte_facturacion(mock_reportes_repo):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/reportes/facturacion?anio=2025&mes=1")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["anio"] == 2025
+        assert data[0]["mes"] == 1
+        assert data[0]["id_comprador"] == 101
+
+@pytest.mark.asyncio
+async def test_obtener_reporte_membresias(mock_reportes_repo):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/reportes/membresias?anio=2025&mes=1")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["anio"] == 2025
+        assert data[0]["mes"] == 1
+        assert data[0]["codigo_membresia"] == "MEM-2025-A001"

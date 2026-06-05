@@ -6,6 +6,7 @@ from app.config.database import conexion_cassandra
 from app.routes.membresias_routes import router as membresias_router
 from app.routes.seguridad_routes import router as seguridad_router
 from app.routes.obras_routes import router as obras_routes
+from app.routes.reportes_routes import router as reportes_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +32,7 @@ async def health_check():
 app.include_router(seguridad_router)
 app.include_router(obras_routes)
 app.include_router(membresias_router)
+app.include_router(reportes_router)
 
 @app.get("/")
 def read_root():
