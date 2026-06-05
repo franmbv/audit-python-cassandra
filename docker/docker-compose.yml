@@ -10,6 +10,7 @@ services:
       - CASSANDRA_CLUSTER_NAME=ClusterMuseoUNEG
     volumes:
       - cassandra-data:/var/lib/cassandra
+      - ../scripts:/docker-entrypoint-initdb.d
     restart: always
 
 volumes:
