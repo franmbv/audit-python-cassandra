@@ -1,6 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from app.config.database import conexion_cassandra 
+from app.config.database import conexion_cassandra
+from app.routes.membresias_routes import router as membresias_router
+from app.routes.seguridad_routes import router as seguridad_router
+from app.routes.obras_routes import router as obras_routes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,6 +19,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+@app.exception_handler(RequestValidationError)
+async def validacion_erronea_handler(_: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"detail": exc.errors()})
+
 @app.get("/health", tags=["Salud"])
 async def health_check():
     return {"status": "healthy", "service": "Cassandra Audit Service"}
+
+app.include_router(seguridad_router)
+app.include_router(obras_routes)
+app.include_router(membresias_router)
+
+@app.get("/")
+def read_root():
+    return {"status": "online", "message": "Microservicio de Auditoría del Museo en funcionamiento"}
