@@ -2,6 +2,7 @@ import asyncio
 import base64
 import logging
 from typing import List, Optional, Tuple
+from uuid import UUID
 from cassandra.cluster import Session
 from cassandra.query import PreparedStatement
 
@@ -55,7 +56,7 @@ class MembresiasRepositorio(BaseCassandraRepository):
 
     async def obtener_codigos_por_comprador(
         self,
-        id_comprador: int,
+        id_comprador: UUID,
         page_size: int = 20,
         paging_state: Optional[str] = None,
     ) -> Tuple[List[CodigoMembresiaSchema], Optional[str]]:
@@ -76,7 +77,7 @@ class MembresiasRepositorio(BaseCassandraRepository):
 
         registros: List[CodigoMembresiaSchema] = [
             CodigoMembresiaSchema(
-                id_comprador=row.id_comprador,
+                id_comprador=UUID(str(row.id_comprador)),
                 fecha_registro=row.fecha_registro,
                 codigo_seguridad=row.codigo_seguridad,
                 correo_envio=row.correo_envio,

@@ -1,7 +1,7 @@
 USE museo_auditoria;
 
 CREATE TABLE IF NOT EXISTS auditoria_codigos_membresia (
-    id_comprador int,
+    id_comprador UUID,
     fecha_registro timestamp,
     codigo_seguridad text,
     correo_envio text,

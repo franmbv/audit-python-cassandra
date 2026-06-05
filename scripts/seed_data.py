@@ -1,6 +1,7 @@
 import sys
 import os
 from datetime import datetime
+from uuid import UUID
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -20,7 +21,7 @@ CREATE TABLE IF NOT EXISTS {KEYSPACE}.bitacora_seguridad (
 ) WITH CLUSTERING ORDER BY (fecha_evento ASC);
 
 CREATE TABLE IF NOT EXISTS {KEYSPACE}.auditoria_codigos_membresia (
-    id_comprador int,
+    id_comprador UUID,
     fecha_registro timestamp,
     codigo_seguridad text,
     correo_envio text,
@@ -29,12 +30,16 @@ CREATE TABLE IF NOT EXISTS {KEYSPACE}.auditoria_codigos_membresia (
 ) WITH CLUSTERING ORDER BY (fecha_registro DESC);
 """
 
+COMPRADOR_1 = UUID("550e8400-e29b-41d4-a716-446655440001")
+COMPRADOR_2 = UUID("550e8400-e29b-41d4-a716-446655440002")
+COMPRADOR_3 = UUID("550e8400-e29b-41d4-a716-446655440003")
+
 SEED_MEMBRESIAS = [
-    (1, datetime(2026, 6, 4, 8, 0, 0), 'MK8X2Q9Z', 'comprador1@correo.com', 'EMITIDO'),
-    (1, datetime(2026, 6, 4, 10, 15, 0), 'Q7LM2V8P', 'comprador1@correo.com', 'EMITIDO'),
-    (2, datetime(2026, 6, 4, 9, 30, 0), 'A9T4N6K1', 'comprador2@correo.com', 'EMITIDO'),
-    (3, datetime(2026, 6, 4, 11, 45, 0), 'X3C9R2HF', 'comprador3@correo.com', 'EMITIDO'),
-    (3, datetime(2026, 6, 4, 12, 5, 0), 'L5V8Q1MN', 'comprador3@correo.com', 'EMITIDO'),
+    (COMPRADOR_1, datetime(2026, 6, 4, 8, 0, 0), 'MK8X2Q9Z', 'comprador1@correo.com', 'EMITIDO'),
+    (COMPRADOR_1, datetime(2026, 6, 4, 10, 15, 0), 'Q7LM2V8P', 'comprador1@correo.com', 'EMITIDO'),
+    (COMPRADOR_2, datetime(2026, 6, 4, 9, 30, 0), 'A9T4N6K1', 'comprador2@correo.com', 'EMITIDO'),
+    (COMPRADOR_3, datetime(2026, 6, 4, 11, 45, 0), 'X3C9R2HF', 'comprador3@correo.com', 'EMITIDO'),
+    (COMPRADOR_3, datetime(2026, 6, 4, 12, 5, 0), 'L5V8Q1MN', 'comprador3@correo.com', 'EMITIDO'),
 ]
 
 INSERT_MEMBRESIA = f"""

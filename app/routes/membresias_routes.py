@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Query
 
@@ -27,7 +28,7 @@ async def crear_codigo(datos: CodigoMembresiaSchema):
 
 @router.get("/codigos", response_model=PaginaCodigoMembresiaSchema)
 async def consultar_codigos(
-    id_comprador: int = Query(..., description="Identificador del comprador"),
+    id_comprador: UUID = Query(..., description="Identificador del comprador"),
     page_size: int = Query(20, ge=1, le=100, description="Tamano de pagina para la lectura"),
     paging_state: Optional[str] = Query(None, description="Token base64 devuelto por la pagina anterior"),
 ):

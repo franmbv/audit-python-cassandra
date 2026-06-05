@@ -7,7 +7,7 @@ INSERT INTO auditoria_codigos_membresia (
     correo_envio,
     estado
 ) VALUES (
-    1,
+    550e8400-e29b-41d4-a716-446655440001,
     '2026-06-04 08:00:00',
     'MK8X2Q9Z',
     'comprador1@correo.com',
@@ -21,7 +21,7 @@ INSERT INTO auditoria_codigos_membresia (
     correo_envio,
     estado
 ) VALUES (
-    1,
+    550e8400-e29b-41d4-a716-446655440001,
     '2026-06-04 10:15:00',
     'Q7LM2V8P',
     'comprador1@correo.com',
@@ -35,7 +35,7 @@ INSERT INTO auditoria_codigos_membresia (
     correo_envio,
     estado
 ) VALUES (
-    2,
+    550e8400-e29b-41d4-a716-446655440002,
     '2026-06-04 09:30:00',
     'A9T4N6K1',
     'comprador2@correo.com',
@@ -49,7 +49,7 @@ INSERT INTO auditoria_codigos_membresia (
     correo_envio,
     estado
 ) VALUES (
-    3,
+    550e8400-e29b-41d4-a716-446655440003,
     '2026-06-04 11:45:00',
     'X3C9R2HF',
     'comprador3@correo.com',
@@ -63,7 +63,7 @@ INSERT INTO auditoria_codigos_membresia (
     correo_envio,
     estado
 ) VALUES (
-    3,
+    550e8400-e29b-41d4-a716-446655440003,
     '2026-06-04 12:05:00',
     'L5V8Q1MN',
     'comprador3@correo.com',
