@@ -3,17 +3,22 @@
 ## Requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y ejecutándose
+- Python 3.10 o superior
+- Entorno virtual (venv)
 
 ## Estructura del proyecto
 
 ```
 audit-python-cassandra/
+├── app/                     # Lógica de la aplicación (Repositories, Schemas, Routes)
 ├── docker/
 │   └── docker-compose.yml   # Orquestación de contenedores
 ├── scripts/
-│   └── 01_init_keyspace.cql # Inicialización del keyspace
+│   ├── 0*.cql               # Estructura de tablas (Keyspace y Módulos)
+│   └── seed_*.cql           # Datos de prueba iniciales
+├── tests/                   # Pruebas de integración automatizadas
 ├── main.py                  # API FastAPI
-├── app/                     # Lógica de la aplicación
+├── requirements.txt         # Dependencias de Python
 └── README.md
 ```
 
@@ -30,7 +35,7 @@ Esto levantará tres contenedores:
 | Contenedor | Imagen | Puerto | Función |
 |---|---|---|---|
 | `museo-cassandra-nodo` | `cassandra:4.0` | `9042` | Base de datos Cassandra |
-| `museo-cassandra-init` | `cassandra:4.0` | - | Crea el keyspace `museo_auditoria` (se ejecuta una vez y termina) |
+| `museo-cassandra-init` | `cassandra:4.0` | - | Inicializa esquemas y datos semilla automáticamente |
 | `museo-cassandra-web` | `delermando/docker-cassandra-web:v0.4.0` | `3000` | Interfaz web de administración |
 
 La primera vez descargará las imágenes, puede tomar varios minutos.
@@ -51,7 +56,7 @@ xxx            delermando/docker-cassandra-web:v0.4.0   Up                      
 ```
 
 - `museo-cassandra-nodo` debe aparecer como `(healthy)`
-- `museo-cassandra-init` debe aparecer como `Exited (0)` (indica que el keyspace se creó correctamente)
+- `museo-cassandra-init` debe aparecer como `Exited (0)` (indica que el keyspace y las tablas se crearon correctamente)
 
 ## Paso 3: Acceder a CassandraDB Web
 
@@ -81,15 +86,42 @@ Una vez conectado puedes:
 - **Ver datos** haciendo clic en cualquier tabla
 - **Administrar el esquema** (crear tablas, índices, etc.)
 
+## Paso 5: Ejecutar el API Python
+
+1. **Crear y activar el entorno virtual:**
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+2. **Instalar dependencias:**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+3. **Iniciar el servidor:**
+   ```powershell
+   uvicorn main:app --reload
+   ```
+
+Accede a la documentación interactiva en: `http://127.0.0.1:8000/docs`.
+
+## Paso 6: Ejecutar Pruebas Automatizadas
+
+El proyecto incluye una suite de pruebas de integración para validar el funcionamiento de los endpoints:
+
+```powershell
+python -m pytest tests/test_api.py -v
+```
+
 ## Comandos útiles
 
 ```powershell
 # Iniciar todos los contenedores
 docker compose -f docker/docker-compose.yml up -d
 
-# Ver logs de un contenedor
-docker logs museo-cassandra-web
-docker logs museo-cassandra-nodo
+# Ver logs del proceso de inicialización de la base de datos
+docker logs museo-cassandra-init
 
 # Detener los contenedores (sin borrar datos)
 docker compose -f docker/docker-compose.yml down
@@ -132,4 +164,4 @@ environment:
   - CASSANDRA_CLUSTER_NAME=TuNombreDeCluster
 ```
 
-Para agregar tablas, modifica `scripts/01_init_keyspace.cql` y reinicia con `down -v` + `up -d`.
+Para agregar tablas, modifica los archivos en la carpeta `scripts/` y reinicia con `down -v` + `up -d`.
