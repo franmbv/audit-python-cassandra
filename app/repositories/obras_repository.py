@@ -2,71 +2,48 @@ import asyncio
 import logging
 from typing import List, Optional
 from cassandra import DriverException
-from cassandra.cluster import NoHostAvailable
+from cassandra.cluster import Session
 from cassandra.query import PreparedStatement
 
 from app.config.database import conexion_cassandra
 from app.schemas.obras_schema import ObrasSchema
+from app.repositories.audit_repository import BaseCassandraRepository
 
 logger = logging.getLogger("cassandra")
 
 
-class ObrasRepositorio:
+class ObrasRepositorio(BaseCassandraRepository):
     def __init__(self):
+        super().__init__()
         self._insert_prepared: Optional[PreparedStatement] = None
         self._query_por_obra: Optional[PreparedStatement] = None
 
-    async def _inicializar(self, max_reintentos: int = 3, espera_segundos: int = 2):
+    async def _preparar_sentencias(self, session: Session) -> None:
         """
-        Prepara las sentencias de Cassandra de forma segura.
-        Incluye reintentos de conexión en caso de fallas transitorias.
+        Prepara las sentencias de Cassandra específicas para el módulo de Obras.
         """
-        if self._insert_prepared is not None and self._query_por_obra is not None:
-            return
+        self._insert_prepared = await asyncio.to_thread(
+            session.prepare,
+            "INSERT INTO historico_estatus_obras "
+            "(id_obra, fecha_evento, estatus_anterior, estatus_nuevo, usuario_id, ip_origen) "
+            "VALUES (?, ?, ?, ?, ?, ?)"
+        )
 
-        for intento in range(1, max_reintentos + 1):
-            try:
-                session = conexion_cassandra.session
-                if session is None:
-                    logger.warning("[Cassandra] La sesión es nula, intentando reconectar...")
-                    conexion_cassandra.conectar()
-                    session = conexion_cassandra.session
-                    assert session is not None, "La sesión no pudo ser inicializada."
-
-                # Preparación de sentencias
-                self._insert_prepared = await asyncio.to_thread(
-                    session.prepare,
-                    "INSERT INTO historico_estatus_obras "
-                    "(id_obra, fecha_evento, estatus_anterior, estatus_nuevo, usuario_id, ip_origen) "
-                    "VALUES (?, ?, ?, ?, ?, ?)"
-                )
-
-                self._query_por_obra = await asyncio.to_thread(
-                    session.prepare,
-                    "SELECT id_obra, fecha_evento, estatus_anterior, estatus_nuevo, usuario_id, ip_origen "
-                    "FROM historico_estatus_obras "
-                    "WHERE id_obra = ?"
-                )
-                logger.info("[Cassandra] Sentencias preparadas con éxito para Obras.")
-                return
-
-            except (NoHostAvailable, DriverException) as e:
-                logger.error(
-                    "Intento %d de %d fallido al preparar sentencias de Cassandra: %s",
-                    intento, max_reintentos, e
-                )
-                if intento == max_reintentos:
-                    raise RuntimeError("No se pudo conectar o preparar las consultas en Cassandra.") from e
-                await asyncio.sleep(espera_segundos)
+        self._query_por_obra = await asyncio.to_thread(
+            session.prepare,
+            "SELECT id_obra, fecha_evento, estatus_anterior, estatus_nuevo, usuario_id, ip_origen "
+            "FROM historico_estatus_obras "
+            "WHERE id_obra = ?"
+        )
 
     async def registrar_cambio_estatus(self, datos: ObrasSchema) -> None:
         """
         Inserta un evento de auditoría de cambio de estado en Cassandra.
         """
-        await self._inicializar()
+        await self._asegurar_inicializacion()
         session = conexion_cassandra.session
-        assert session is not None, "Sesión de Cassandra no disponible."
-        assert self._insert_prepared is not None, "Sentencia preparada de inserción no inicializada."
+        assert session is not None
+        assert self._insert_prepared is not None
 
         try:
             await asyncio.to_thread(
@@ -93,10 +70,10 @@ class ObrasRepositorio:
         """
         Retorna el histórico de cambios de estado para una obra específica.
         """
-        await self._inicializar()
+        await self._asegurar_inicializacion()
         session = conexion_cassandra.session
-        assert session is not None, "Sesión de Cassandra no disponible."
-        assert self._query_por_obra is not None, "Sentencia preparada de selección no inicializada."
+        assert session is not None
+        assert self._query_por_obra is not None
 
         try:
             rows = await asyncio.to_thread(
