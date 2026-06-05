@@ -2,11 +2,14 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 from main import app
 from app.schemas.obras_schema import ObrasSchema
 from app.schemas.seguridad_schema import SeguridadSchema
 from app.schemas.membresias_schema import CodigoMembresiaSchema
+
+COMPRADOR_TEST = UUID("550e8400-e29b-41d4-a716-446655440500")
 
 @pytest.fixture
 def mock_obras_repo(monkeypatch):
@@ -58,11 +61,11 @@ def mock_membresias_repo(monkeypatch):
         async def insertar_codigo(self, datos):
             return datos
         
-        async def obtener_codigos_por_comprador(self, id_comprador: int, page_size: int = 20, paging_state: Optional[str] = None):
-            if id_comprador == 5001:
+        async def obtener_codigos_por_comprador(self, id_comprador: UUID, page_size: int = 20, paging_state: Optional[str] = None):
+            if id_comprador == COMPRADOR_TEST:
                 return [
                     CodigoMembresiaSchema(
-                        id_comprador=5001,
+                        id_comprador=COMPRADOR_TEST,
                         fecha_registro=datetime.now(timezone.utc),
                         codigo_seguridad="SECRET123",
                         correo_envio="test@example.com",
@@ -131,7 +134,7 @@ async def test_obtener_logs_seguridad(mock_seguridad_repo):
 async def test_registrar_codigo_membresia(mock_membresias_repo):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         payload = {
-            "id_comprador": 5001,
+            "id_comprador": str(COMPRADOR_TEST),
             "fecha_registro": datetime.now(timezone.utc).isoformat(),
             "codigo_seguridad": "SECRET123",
             "correo_envio": "test@example.com",
@@ -144,8 +147,8 @@ async def test_registrar_codigo_membresia(mock_membresias_repo):
 @pytest.mark.asyncio
 async def test_obtener_codigos_membresia(mock_membresias_repo):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.get("/membresias/codigos?id_comprador=5001")
+        response = await client.get(f"/membresias/codigos?id_comprador={COMPRADOR_TEST}")
         assert response.status_code == 200
         data = response.json()
         assert len(data["datos"]) == 1
-        assert data["datos"][0]["id_comprador"] == 5001
+        assert data["datos"][0]["id_comprador"] == str(COMPRADOR_TEST)
