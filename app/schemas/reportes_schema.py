@@ -1,13 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from uuid import UUID
 from pydantic import BaseModel, Field
 
 class ReporteFacturacionSchema(BaseModel):
     anio: int
     mes: int
-    id_factura: UUID
+    id_factura: int
     fecha_emision: datetime
     id_comprador: int
     monto_neto: Decimal
@@ -22,7 +21,7 @@ class ReporteFacturacionSchema(BaseModel):
 class ReporteMembresiaSchema(BaseModel):
     anio: int
     mes: int
-    id_membresia: UUID
+    id_membresia: int
     fecha_registro: datetime
     id_comprador: int
     codigo_membresia: str

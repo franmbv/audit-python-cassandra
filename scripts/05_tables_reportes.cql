@@ -1,7 +1,9 @@
+USE museo_auditoria;
+
 CREATE TABLE IF NOT EXISTS reporte_facturacion_periodo (
     anio int,
     mes int,
-    id_factura UUID,
+    id_factura int,
     fecha_emision timestamp,
     id_comprador int,
     monto_neto decimal,
@@ -14,7 +16,7 @@ CREATE TABLE IF NOT EXISTS reporte_facturacion_periodo (
 CREATE TABLE IF NOT EXISTS reporte_membresias_periodo (
     anio int,
     mes int,
-    id_membresia UUID,
+    id_membresia int,
     fecha_registro timestamp,
     id_comprador int,
     codigo_membresia text,

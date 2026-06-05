@@ -38,9 +38,11 @@ services:
         cqlsh cassandra-local 9042 -f /opt/scripts/02_table_obras.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/03_table_seguridad.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/04_table_membresias.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/05_tables_reportes.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/seed_seguridad.cql &&
         cqlsh cassandra-local 9042 -f /opt/scripts/seed_obras.cql &&
-        cqlsh cassandra-local 9042 -f /opt/scripts/seed_membresias.cql
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_membresias.cql &&
+        cqlsh cassandra-local 9042 -f /opt/scripts/seed_reportes.cql
       "
     restart: no
     networks:
