@@ -1,178 +1,249 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-# Configuration
+# --- CONFIGURATION & THEME ---
 API_BASE_URL = "http://localhost:8000"
-st.set_page_config(layout="wide", page_title="Dashboard del Museo")
+st.set_page_config(layout="wide", page_title="Museo Analytics | Pro Edition", page_icon="🏛️")
 
-# --- CUSTOM CSS FOR HIGH-TECH AESTHETIC ---
+# Custom CSS for a professional "Dark Cyber" aesthetic
 st.markdown("""
     <style>
-    .main {
-        background-color: #0e1117;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
     .stApp {
-        color: #e5e7eb;
-        font-family: 'Courier New', Courier, monospace;
+        background-color: #050505;
+        color: #f3f4f6;
     }
-    div.stButton > button {
-        background-color: #1f2937;
-        color: #f97316;
-        border: 1px solid #f97316;
+    .main-header {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        background: linear-gradient(90deg, #f97316 0%, #fbbf24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        color: #9ca3af;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
     }
     div.stMetric {
-        background-color: #1f2937;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #f97316;
+        background: rgba(31, 41, 55, 0.4);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(249, 115, 22, 0.2);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    div[data-testid="stExpander"] {
+        background: rgba(31, 41, 55, 0.2);
+        border: 1px solid rgba(249, 115, 22, 0.1);
+        border-radius: 8px;
+    }
+    .timeline-card {
+        padding: 1rem;
+        border-left: 3px solid #f97316;
+        background: rgba(31, 41, 55, 0.3);
+        margin-bottom: 1rem;
+        border-radius: 0 8px 8px 0;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Sidebar
-st.sidebar.title("Filtros Globales")
-anio = st.sidebar.selectbox("Año Fiscal", [2025, 2026])
-mes = st.sidebar.slider("Mes", 1, 12, 1)
+# --- SIDEBAR ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/3659/3659815.png", width=80)
+    st.title("Centro de Control")
+    st.markdown("---")
+    st.markdown("### Estado del Sistema")
+    st.success("🟢 Operacional")
+    st.markdown("---")
+    st.info("Sistema de Auditoría v2.0\n\nMuseo de Arte Moderno")
 
-# Main content
-st.title("Panel de Control - Sistema Central del Museo")
+# --- DATA FETCHING HELPERS ---
+@st.cache_data(ttl=60)
+def fetch_financial_data(anio, mes):
+    fact_res = requests.get(f"{API_BASE_URL}/reportes/facturacion", params={"anio": anio, "mes": mes})
+    memb_res = requests.get(f"{API_BASE_URL}/reportes/membresias", params={"anio": anio, "mes": mes})
+    return (fact_res.json() if fact_res.status_code == 200 else []), \
+           (memb_res.json() if memb_res.status_code == 200 else [])
 
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs([
-    "CONTROL FINANCIERO",
-    "TRAZABILIDAD OBRAS",
-    "SEGURIDAD LOGS",
-    "AUDITORÍA MEMBRESÍAS"
+# --- HEADER SECTION ---
+st.markdown('<h1 class="main-header">MUSEO ANALYTICS</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Plataforma de Inteligencia y Auditoría de Activos Artísticos</p>', unsafe_allow_html=True)
+
+# --- MAIN TABS ---
+tab_fin, tab_obras, tab_seg, tab_audit = st.tabs([
+    "📈 FINANZAS", 
+    "🎨 TRAZABILIDAD", 
+    "🛡️ SEGURIDAD", 
+    "🔍 AUDITORÍA"
 ])
 
-# --- PESTAÑA 1: CONTROL FINANCIERO GERENCIAL ---
-with tab1:
-    st.header("Control Financiero Gerencial")
+# --- TAB 1: FINANZAS ---
+with tab_fin:
+    # Move filters here
+    st.subheader("Parámetros de Análisis Fiscal")
+    f_col1, f_col2 = st.columns(2)
+    with f_col1:
+        anio_fiscal = st.selectbox("Año Fiscal", [2026, 2025], index=0)
+    with f_col2:
+        mes_fiscal = st.select_slider("Mes de Análisis", options=list(range(1, 13)), value=6)
     
-    # Fetch Data
-    try:
-        facturacion_res = requests.get(f"{API_BASE_URL}/reportes/facturacion", params={"anio": anio, "mes": mes})
-        membresias_res = requests.get(f"{API_BASE_URL}/reportes/membresias", params={"anio": anio, "mes": mes})
+    st.markdown("---")
+
+    # Fetch data inside tab
+    fact_data, memb_data = fetch_financial_data(anio_fiscal, mes_fiscal)
+    df_fact = pd.DataFrame(fact_data)
+    df_memb = pd.DataFrame(memb_data)
+
+    # Tab-specific KPIs
+    kpi1, kpi2, kpi3 = st.columns(3)
+
+    if not df_fact.empty:
+        df_fact['ganancia_museo'] = pd.to_numeric(df_fact['ganancia_museo'])
+        df_fact['monto_neto'] = pd.to_numeric(df_fact['monto_neto'])
+        total_rev = df_fact['monto_neto'].sum()
+        net_profit = df_fact['ganancia_museo'].sum()
+    else:
+        total_rev = net_profit = 0
+
+    if not df_memb.empty:
+        df_memb['monto_cobrado'] = pd.to_numeric(df_memb['monto_cobrado'])
+        total_memb = df_memb['monto_cobrado'].sum()
+    else:
+        total_memb = 0
+
+    kpi1.metric("Ingresos Totales", f"${total_rev:,.2f}")
+    kpi2.metric("Ganancia Neta", f"${net_profit:,.2f}")
+    kpi3.metric("Recaudación Membresías", f"${total_memb:,.2f}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if df_fact.empty and df_memb.empty:
+        st.warning("No hay datos financieros para este periodo.")
+    else:
+        c1, c2 = st.columns([1, 1])
         
-        facturacion_data = facturacion_res.json() if facturacion_res.status_code == 200 else []
-        membresias_data = membresias_res.json() if membresias_res.status_code == 200 else []
+        with c1:
+            st.subheader("Estado de Facturación")
+            if not df_fact.empty:
+                fig_status = px.pie(df_fact, names='estado', hole=0.6, 
+                                  color_discrete_sequence=px.colors.sequential.Oranges_r)
+                fig_status.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                       font_color='white', showlegend=True, margin=dict(t=0, b=0, l=0, r=0))
+                st.plotly_chart(fig_status, use_container_width=True)
         
-        if not facturacion_data and not membresias_data:
-            st.warning("Sin registros para los parámetros consultados.")
-        else:
-            # Metrics
-            df_fact = pd.DataFrame(facturacion_data)
-            df_memb = pd.DataFrame(membresias_data)
-            
-            # Force numeric conversion
-            if 'ganancia_museo' in df_fact.columns:
-                df_fact['ganancia_museo'] = pd.to_numeric(df_fact['ganancia_museo'], errors='coerce')
-            if 'iva_calculado' in df_fact.columns:
-                df_fact['iva_calculado'] = pd.to_numeric(df_fact['iva_calculado'], errors='coerce')
-            if 'monto_cobrado' in df_memb.columns:
-                df_memb['monto_cobrado'] = pd.to_numeric(df_memb['monto_cobrado'], errors='coerce')
-            if 'monto_neto' in df_fact.columns:
-                df_fact['monto_neto'] = pd.to_numeric(df_fact['monto_neto'], errors='coerce')
+        with c2:
+            st.subheader("Tendencia de Ingresos")
+            if not df_fact.empty:
+                df_fact['fecha_emision'] = pd.to_datetime(df_fact['fecha_emision'])
+                daily_rev = df_fact.groupby(df_fact['fecha_emision'].dt.date)['monto_neto'].sum().reset_index()
+                fig_rev = px.area(daily_rev, x='fecha_emision', y='monto_neto', 
+                                 line_shape='spline', color_discrete_sequence=['#f97316'])
+                fig_rev.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                    font_color='white', xaxis_title=None, yaxis_title="Monto ($)",
+                                    margin=dict(t=20, b=20, l=0, r=0))
+                st.plotly_chart(fig_rev, use_container_width=True)
+        
+        st.subheader("Detalle de Transacciones")
+        st.dataframe(df_fact, use_container_width=True)
 
-            ganancia_neta = df_fact['ganancia_museo'].sum() if 'ganancia_museo' in df_fact.columns else 0
-            iva_recaudado = df_fact['iva_calculado'].sum() if 'iva_calculado' in df_fact.columns else 0
-            recaudacion_memb = df_memb['monto_cobrado'].sum() if 'monto_cobrado' in df_memb.columns else 0
-            
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Ganancia Neta ($)", f"{ganancia_neta:,.2f}")
-            m2.metric("IVA ($)", f"{iva_recaudado:,.2f}")
-            m3.metric("Membresías ($)", f"{recaudacion_memb:,.2f}")
-            
-            # Visualizations
-            st.subheader("Análisis de Ingresos")
-            col_chart1, col_chart2 = st.columns(2)
-            
-            with col_chart1:
-                st.write("Distribución de Ganancia Neta")
-                if 'ganancia_museo' in df_fact.columns and 'id_factura' in df_fact.columns:
-                    st.bar_chart(df_fact.set_index('id_factura')['ganancia_museo'])
-            
-            with col_chart2:
-                st.write("Recaudación por Membresía")
-                if 'monto_cobrado' in df_memb.columns:
-                    st.line_chart(df_memb['monto_cobrado'])
-
-    except Exception as e:
-        st.error(f"Error al conectar con el backend: {e}")
-
-# --- PESTAÑA 2: TRAZABILIDAD Y ESTATUS DE OBRAS ---
-with tab2:
-    st.header("Trazabilidad y Estatus de Obras")
-    id_obra = st.number_input("ID de la Obra", min_value=1, step=1)
+# --- TAB 2: TRAZABILIDAD ---
+with tab_obras:
+    st.subheader("Historial de Estatus de Obra")
+    id_obra = st.number_input("Ingrese ID de la Obra", min_value=1, value=5001, step=1)
     
-    if id_obra:
-        try:
+    if st.button("Rastrear Activo"):
+        with st.spinner("Consultando registros históricos..."):
             res = requests.get(f"{API_BASE_URL}/obras/historico/{id_obra}")
             if res.status_code == 200:
-                data = res.json()
-                df_obras = pd.DataFrame(data)
+                obras_data = res.json()
+                if not obras_data:
+                    st.info("No se encontró historial para esta obra.")
+                else:
+                    for item in obras_data:
+                        fecha_raw = item['fecha_evento'].replace('Z', '')
+                        fecha = datetime.fromisoformat(fecha_raw).strftime("%d %b %Y, %H:%M")
+                        st.markdown(f"""
+                            <div class="timeline-card">
+                                <strong>{fecha}</strong><br>
+                                <span style="color: #f97316;">{item['estatus_anterior']}</span> ➔ 
+                                <span style="color: #fbbf24;">{item['estatus_nuevo']}</span><br>
+                                <small>Usuario: {item['usuario_id']} | IP: {item['ip_origen']}</small>
+                            </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.error("Error al consultar el repositorio de obras.")
+
+# --- TAB 3: SEGURIDAD ---
+with tab_seg:
+    st.subheader("Monitor de Eventos de Seguridad")
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        user_log = st.text_input("Usuario a auditar", value="jperez")
+    with col_s2:
+        date_range = st.date_input("Rango de fechas", [datetime(2025, 1, 1), datetime.now()])
+    
+    if st.button("Generar Reporte de Seguridad"):
+        params = {
+            "login_usuario": user_log,
+            "desde": date_range[0].isoformat(),
+            "hasta": date_range[1].isoformat()
+        }
+        res_seg = requests.get(f"{API_BASE_URL}/seguridad/logs", params=params)
+        if res_seg.status_code == 200:
+            df_seg = pd.DataFrame(res_seg.json())
+            if df_seg.empty:
+                st.info("Sin eventos detectados para este usuario en el rango seleccionado.")
+            else:
+                s_c1, s_c2 = st.columns([1, 1])
+                with s_c1:
+                    fig_seg = px.histogram(df_seg, x='evento_tipo', color='evento_tipo',
+                                         color_discrete_sequence=px.colors.qualitative.Bold)
+                    fig_seg.update_layout(showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
+                    st.plotly_chart(fig_seg, use_container_width=True)
+                with s_c2:
+                    st.metric("Alertas Críticas", len(df_seg[df_seg['evento_tipo'].str.contains("FALLIDO")]))
+                    st.dataframe(df_seg[['fecha_evento', 'evento_tipo', 'ip_origen']], use_container_width=True)
+        else:
+            st.error("Error en el servicio de seguridad.")
+
+# --- TAB 4: AUDITORÍA ---
+with tab_audit:
+    st.subheader("Auditoría de Códigos de Membresía")
+    id_comp = st.number_input("ID del Comprador", min_value=1, value=1, step=1)
+    
+    if st.button("Consultar Auditoría"):
+        res_audit = requests.get(f"{API_BASE_URL}/membresias/codigos", params={"id_comprador": id_comp})
+        if res_audit.status_code == 200:
+            audit_data = res_audit.json().get('datos', [])
+            if not audit_data:
+                st.info("No se encontraron códigos emitidos para este comprador.")
+            else:
+                df_audit = pd.DataFrame(audit_data)
                 
-                st.subheader(f"Línea de tiempo - Obra {id_obra}")
-                # Visual timeline approach
-                for _, row in df_obras.iterrows():
-                    with st.expander(f"{row.get('fecha_evento', 'N/A')} : {row.get('estatus_anterior', 'Inicio')} ➔ {row.get('estatus_nuevo', 'N/A')}"):
-                        st.write(f"**Usuario:** {row.get('usuario_id')}")
-                        st.write(f"**IP:** {row.get('ip_origen')}")
-            elif res.status_code == 404:
-                st.warning("No se encontraron registros para esa obra.")
-            else:
-                st.error("Error al obtener el historial.")
-        except Exception as e:
-            st.error(f"Error al conectar con el backend: {e}")
+                # Visual summary instead of a redundant bar chart
+                a1, a2 = st.columns(2)
+                total_codes = len(df_audit)
+                
+                with a1:
+                    st.metric("Total Códigos Emitidos", total_codes)
+                with a2:
+                    st.info("Todos los códigos se encuentran en estado **EMITIDO**")
+                
+                st.markdown("---")
+                st.dataframe(df_audit[['fecha_registro', 'codigo_seguridad', 'correo_envio', 'estado']], use_container_width=True)
+        else:
+            st.error("Error al consultar el servicio de auditoría.")
 
-# --- PESTAÑA 3: SEGURIDAD Y ACCESOS (LOGS) ---
-with tab3:
-    st.header("Seguridad y Accesos (Logs)")
-    usuario = st.text_input("Login de Administrador/Comprador")
-    
-    if st.button("Consultar Logs"):
-        try:
-            # Need dates for the API, assuming current month/year for the range
-            desde = datetime(anio, mes, 1).isoformat()
-            hasta = (datetime(anio, mes, 1) + timedelta(days=30)).isoformat()
-            
-            res = requests.get(f"{API_BASE_URL}/seguridad/logs", params={"login_usuario": usuario, "desde": desde, "hasta": hasta})
-            
-            if res.status_code == 200:
-                data = res.json()
-                if not data:
-                    st.info("Sin registros.")
-                else:
-                    df = pd.DataFrame(data)
-                    st.metric("Total de Eventos", len(df))
-                    st.dataframe(df)
-                    
-                    # Highlight issues
-                    if 'accion' in df.columns:
-                        if df['accion'].str.contains("DENEGADO|SOSPECHOSA").any():
-                            st.error("¡Se detectó actividad sospechosa o acceso denegado!")
-            else:
-                st.error("Error al consultar logs.")
-        except Exception as e:
-            st.error(f"Error al conectar con el backend: {e}")
-
-# --- PESTAÑA 4: AUDITORÍA DE CÓDIGOS DE MEMBRESÍA ---
-with tab4:
-    st.header("Auditoría de Códigos de Membresía")
-    id_comprador = st.number_input("ID del Comprador", min_value=1, step=1)
-    
-    if st.button("Buscar Códigos"):
-        try:
-            res = requests.get(f"{API_BASE_URL}/membresias/codigos", params={"id_comprador": id_comprador})
-            if res.status_code == 200:
-                data = res.json()
-                if not data['datos']:
-                    st.info("Sin registros.")
-                else:
-                    st.dataframe(pd.DataFrame(data['datos']))
-            else:
-                st.error("Error al consultar códigos.")
-        except Exception as e:
-            st.error(f"Error al conectar con el backend: {e}")
+# Footer
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: #4b5563;'>© 2026 Museo Auditoria System | Confidential & Restricted Access</p>", unsafe_allow_html=True)
