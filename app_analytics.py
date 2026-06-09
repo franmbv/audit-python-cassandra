@@ -153,8 +153,14 @@ with tab_fin:
                                     margin=dict(t=20, b=20, l=0, r=0))
                 st.plotly_chart(fig_rev, use_container_width=True)
         
-        st.subheader("Detalle de Transacciones")
+        st.subheader("Detalle de Transacciones (Facturación)")
         st.dataframe(df_fact, use_container_width=True)
+
+        st.subheader("Detalle de Membresías")
+        if not df_memb.empty:
+            st.dataframe(df_memb, use_container_width=True)
+        else:
+            st.info("No hay registros de membresías para este periodo.")
 
 # --- TAB 2: TRAZABILIDAD ---
 with tab_obras:
