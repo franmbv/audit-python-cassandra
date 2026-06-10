@@ -17,7 +17,7 @@ class CodigoMembresiaSchema(BaseModel):
 
     codigo_seguridad: str = Field(
         ...,
-        min_length=6,
+        min_length=2,
         max_length=32,
         description="Codigo de seguridad emitido para la membresia",
         examples=["MK8X2Q9Z"],
