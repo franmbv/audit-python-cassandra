@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # --- CONFIGURATION & THEME ---
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = "http://localhost:8080"
 st.set_page_config(layout="wide", page_title="Museo Analytics | Pro Edition", page_icon="🏛️")
 
 # Custom CSS for a professional "Dark Cyber" aesthetic
@@ -165,7 +165,7 @@ with tab_fin:
 # --- TAB 2: TRAZABILIDAD ---
 with tab_obras:
     st.subheader("Historial de Estatus de Obra")
-    id_obra = st.number_input("Ingrese ID de la Obra", min_value=1, value=5001, step=1)
+    id_obra = st.number_input("Ingrese ID de la Obra", min_value=1, value=28, step=1)
     
     if st.button("Rastrear Activo"):
         with st.spinner("Consultando registros históricos..."):
@@ -194,9 +194,9 @@ with tab_seg:
     st.subheader("Monitor de Eventos de Seguridad")
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        user_log = st.text_input("Usuario a auditar", value="jperez")
+        user_log = st.text_input("Usuario a auditar", value="frantest")
     with col_s2:
-        date_range = st.date_input("Rango de fechas", [datetime(2025, 1, 1), datetime.now()])
+        date_range = st.date_input("Rango de fechas", [datetime(2025, 1, 1), datetime.now() + timedelta(days=1)])
     
     if st.button("Generar Reporte de Seguridad"):
         params = {
@@ -225,7 +225,7 @@ with tab_seg:
 # --- TAB 4: AUDITORÍA ---
 with tab_audit:
     st.subheader("Auditoría de Códigos de Membresía")
-    id_comp = st.number_input("ID del Comprador", min_value=1, value=1, step=1)
+    id_comp = st.number_input("ID del Comprador", min_value=1, value=26, step=1)
     
     if st.button("Consultar Auditoría"):
         res_audit = requests.get(f"{API_BASE_URL}/membresias/codigos", params={"id_comprador": id_comp})

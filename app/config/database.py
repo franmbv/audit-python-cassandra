@@ -1,6 +1,8 @@
 from typing import Optional
 from cassandra.cluster import Cluster, Session
+from cassandra.auth import PlainTextAuthProvider
 import logging
+import json
 
 logger = logging.getLogger("cassandra")
 
@@ -11,37 +13,47 @@ class CassandraConfig:
         self.keyspace = "museo_auditoria"
 
     def conectar(self):
-        """Inicializa los cables de conexión hacia el contenedor de Docker"""
+        """Inicializa la conexión segura hacia la nube de DataStax Astra DB"""
         try:
-            # 1. Apuntamos al localhost y al puerto estándar que configuraste en Docker
-            self.cluster = Cluster(['127.0.0.1'], port=9042)
+            # 1. Leer el archivo JSON con tus credenciales secretas
+            with open("cluster_museo_uneg-token.json") as f:
+                secrets = json.load(f)
             
-            # 2. Abrimos la sesión de comunicación global
+            CLIENT_ID = secrets["clientId"]
+            CLIENT_SECRET = secrets["secret"]
+            
+            # 2. Configurar la autenticación segura de la nube
+            auth_provider = PlainTextAuthProvider(CLIENT_ID, CLIENT_SECRET)
+            
+            # 3. Apuntar al archivo zip de conexión (Secure Connect Bundle)
+            cloud_config = {
+                'secure_connect_bundle': 'secure-connect-cluster-museo-uneg.zip'
+            }
+            
+            # 4. Conectar al clúster remoto en internet
+            self.cluster = Cluster(cloud=cloud_config, auth_provider=auth_provider)
             self.session = self.cluster.connect()
             
-            # 3. Creamos el Keyspace (la base de datos) de forma automatizada si no existe
-            self.session.execute(f"""
-                CREATE KEYSPACE IF NOT EXISTS {self.keyspace}
-                WITH replication = {{
-                    'class': 'SimpleStrategy',
-                    'replication_factor': 1
-                }}
-            """)
-            
-            # 4. Le decimos a la sesión que use este Keyspace por defecto para todas las consultas futuras
+            # 5. Posicionarnos en el Keyspace que creaste en la nube
             self.session.set_keyspace(self.keyspace)
-            print(f"[Cassandra] Conexión establecida con éxito en el keyspace: '{self.keyspace}'")
+            print(f"[AstraDB] ¡Conexión en la nube exitosa en el keyspace: '{self.keyspace}'!")
+            
+            row = self.session.execute("select release_version from system.local").one()
+            if row:
+                print(f"🚀 Versión oficial de tu Cassandra en la nube: {row[0]}")
+            else:
+                print("⚠️ Se conectó, pero no se pudo leer la versión.")
             
         except Exception as e:
-            logger.error(f"Error crítico al conectar con Apache Cassandra en Docker: {e}")
+            logger.error(f"Error crítico al conectar con DataStax Astra DB en la nube: {e}")
             raise e
 
     def cerrar(self):
-        """Cierra los sockets de red de forma limpia al apagar el servidor"""
+        """Cierra la conexión de red de forma limpia"""
         if self.session:
             self.session.shutdown()
         if self.cluster:
             self.cluster.shutdown()
-        print("[Cassandra] Conexiones cerradas de forma segura.")
+        print("[AstraDB] Conexión en la nube cerrada de forma segura.")
 
 conexion_cassandra = CassandraConfig()

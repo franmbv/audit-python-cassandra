@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Credenciales secretas de la nube de DataStax Astra DB
+cluster_museo_uneg-token.json
+secure-connect-cluster-museo-uneg.zip
+
 # Distribution / packaging
 .Python
 build/
