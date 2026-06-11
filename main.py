@@ -37,3 +37,9 @@ app.include_router(reportes_router)
 @app.get("/")
 def read_root():
     return {"status": "online", "message": "Microservicio de Auditoría del Museo en funcionamiento"}
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # Aquí puedes cambiar el 8080 por el puerto que necesites
+    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
