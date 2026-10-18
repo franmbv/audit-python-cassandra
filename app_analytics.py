@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 # --- CONFIGURATION & THEME ---
 API_BASE_URL = "http://localhost:8080"
-st.set_page_config(layout="wide", page_title="Museo Analytics | Pro Edition", page_icon="🏛️")
+st.set_page_config(layout="wide", page_title="Museum Analytics | Pro Edition", page_icon="🏛️")
 
 # Custom CSS for a professional "Dark Cyber" aesthetic
 st.markdown("""
@@ -60,12 +60,12 @@ st.markdown("""
 # --- SIDEBAR ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3659/3659815.png", width=80)
-    st.title("Centro de Control")
+    st.title("Control Center")
     st.markdown("---")
-    st.markdown("### Estado del Sistema")
-    st.success("🟢 Operacional")
+    st.markdown("### System Status")
+    st.success("🟢 Operational")
     st.markdown("---")
-    st.info("Sistema de Auditoría v2.0\n\nMuseo de Arte Moderno")
+    st.info("Audit System v2.0\n\nModern Art Museum")
 
 # --- DATA FETCHING HELPERS ---
 @st.cache_data(ttl=60)
@@ -76,26 +76,25 @@ def fetch_financial_data(anio, mes):
            (memb_res.json() if memb_res.status_code == 200 else [])
 
 # --- HEADER SECTION ---
-st.markdown('<h1 class="main-header">MUSEO ANALYTICS</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Plataforma de Inteligencia y Auditoría de Activos Artísticos</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">MUSEUM ANALYTICS</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Art Asset Intelligence & Audit Platform</p>', unsafe_allow_html=True)
 
 # --- MAIN TABS ---
 tab_fin, tab_obras, tab_seg, tab_audit = st.tabs([
-    "📈 FINANZAS", 
-    "🎨 TRAZABILIDAD", 
-    "🛡️ SEGURIDAD", 
-    "🔍 AUDITORÍA"
+    "📈 FINANCIALS", 
+    "🎨 TRACEABILITY", 
+    "🛡️ SECURITY", 
+    "🔍 AUDITING"
 ])
 
-# --- TAB 1: FINANZAS ---
+# --- TAB 1: FINANCIALS ---
 with tab_fin:
-    # Move filters here
-    st.subheader("Parámetros de Análisis Fiscal")
+    st.subheader("Fiscal Analysis Parameters")
     f_col1, f_col2 = st.columns(2)
     with f_col1:
-        anio_fiscal = st.selectbox("Año Fiscal", [2026, 2025], index=0)
+        anio_fiscal = st.selectbox("Fiscal Year", [2026, 2025], index=0)
     with f_col2:
-        mes_fiscal = st.select_slider("Mes de Análisis", options=list(range(1, 13)), value=6)
+        mes_fiscal = st.select_slider("Analysis Month", options=list(range(1, 13)), value=6)
     
     st.markdown("---")
 
@@ -121,19 +120,19 @@ with tab_fin:
     else:
         total_memb = 0
 
-    kpi1.metric("Ingresos Totales", f"${total_rev:,.2f}")
-    kpi2.metric("Ganancia Neta", f"${net_profit:,.2f}")
-    kpi3.metric("Recaudación Membresías", f"${total_memb:,.2f}")
+    kpi1.metric("Total Revenue", f"${total_rev:,.2f}")
+    kpi2.metric("Net Profit", f"${net_profit:,.2f}")
+    kpi3.metric("Membership Revenue", f"${total_memb:,.2f}")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     if df_fact.empty and df_memb.empty:
-        st.warning("No hay datos financieros para este periodo.")
+        st.warning("No financial records found for this period.")
     else:
         c1, c2 = st.columns([1, 1])
         
         with c1:
-            st.subheader("Estado de Facturación")
+            st.subheader("Invoicing Status")
             if not df_fact.empty:
                 fig_status = px.pie(df_fact, names='estado', hole=0.6, 
                                   color_discrete_sequence=px.colors.sequential.Oranges_r)
@@ -142,38 +141,38 @@ with tab_fin:
                 st.plotly_chart(fig_status, use_container_width=True)
         
         with c2:
-            st.subheader("Tendencia de Ingresos")
+            st.subheader("Revenue Trend")
             if not df_fact.empty:
                 df_fact['fecha_emision'] = pd.to_datetime(df_fact['fecha_emision'])
                 daily_rev = df_fact.groupby(df_fact['fecha_emision'].dt.date)['monto_neto'].sum().reset_index()
                 fig_rev = px.area(daily_rev, x='fecha_emision', y='monto_neto', 
                                  line_shape='spline', color_discrete_sequence=['#f97316'])
                 fig_rev.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                    font_color='white', xaxis_title=None, yaxis_title="Monto ($)",
+                                    font_color='white', xaxis_title=None, yaxis_title="Amount ($)",
                                     margin=dict(t=20, b=20, l=0, r=0))
                 st.plotly_chart(fig_rev, use_container_width=True)
         
-        st.subheader("Detalle de Transacciones (Facturación)")
+        st.subheader("Transaction Details (Invoicing)")
         st.dataframe(df_fact, use_container_width=True)
 
-        st.subheader("Detalle de Membresías")
+        st.subheader("Membership Details")
         if not df_memb.empty:
             st.dataframe(df_memb, use_container_width=True)
         else:
-            st.info("No hay registros de membresías para este periodo.")
+            st.info("No membership records found for this period.")
 
-# --- TAB 2: TRAZABILIDAD ---
+# --- TAB 2: TRACEABILITY ---
 with tab_obras:
-    st.subheader("Historial de Estatus de Obra")
-    id_obra = st.number_input("Ingrese ID de la Obra", min_value=1, value=28, step=1)
+    st.subheader("Artwork Status History")
+    id_obra = st.number_input("Enter Artwork ID", min_value=1, value=28, step=1)
     
-    if st.button("Rastrear Activo"):
-        with st.spinner("Consultando registros históricos..."):
+    if st.button("Track Asset"):
+        with st.spinner("Querying historical records..."):
             res = requests.get(f"{API_BASE_URL}/obras/historico/{id_obra}")
             if res.status_code == 200:
                 obras_data = res.json()
                 if not obras_data:
-                    st.info("No se encontró historial para esta obra.")
+                    st.info("No history found for this artwork.")
                 else:
                     for item in obras_data:
                         fecha_raw = item['fecha_evento'].replace('Z', '')
@@ -183,22 +182,22 @@ with tab_obras:
                                 <strong>{fecha}</strong><br>
                                 <span style="color: #f97316;">{item['estatus_anterior']}</span> ➔ 
                                 <span style="color: #fbbf24;">{item['estatus_nuevo']}</span><br>
-                                <small>Usuario: {item['usuario_id']} | IP: {item['ip_origen']}</small>
+                                <small>User: {item['usuario_id']} | IP: {item['ip_origen']}</small>
                             </div>
                         """, unsafe_allow_html=True)
             else:
-                st.error("Error al consultar el repositorio de obras.")
+                st.error("Error querying artwork repository.")
 
-# --- TAB 3: SEGURIDAD ---
+# --- TAB 3: SECURITY ---
 with tab_seg:
-    st.subheader("Monitor de Eventos de Seguridad")
+    st.subheader("Security Event Monitor")
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        user_log = st.text_input("Usuario a auditar", value="frantest")
+        user_log = st.text_input("User to audit", value="frantest")
     with col_s2:
-        date_range = st.date_input("Rango de fechas", [datetime(2025, 1, 1), datetime.now() + timedelta(days=1)])
+        date_range = st.date_input("Date range", [datetime(2025, 1, 1), datetime.now() + timedelta(days=1)])
     
-    if st.button("Generar Reporte de Seguridad"):
+    if st.button("Generate Security Report"):
         params = {
             "login_usuario": user_log,
             "desde": date_range[0].isoformat(),
@@ -208,7 +207,7 @@ with tab_seg:
         if res_seg.status_code == 200:
             df_seg = pd.DataFrame(res_seg.json())
             if df_seg.empty:
-                st.info("Sin eventos detectados para este usuario en el rango seleccionado.")
+                st.info("No events detected for this user within the selected date range.")
             else:
                 s_c1, s_c2 = st.columns([1, 1])
                 with s_c1:
@@ -217,39 +216,39 @@ with tab_seg:
                     fig_seg.update_layout(showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white')
                     st.plotly_chart(fig_seg, use_container_width=True)
                 with s_c2:
-                    st.metric("Alertas Críticas", len(df_seg[df_seg['evento_tipo'].str.contains("FALLIDO")]))
+                    st.metric("Critical Alerts", len(df_seg[df_seg['evento_tipo'].str.contains("FALLIDO")]))
                     st.dataframe(df_seg[['fecha_evento', 'evento_tipo', 'ip_origen']], use_container_width=True)
         else:
-            st.error("Error en el servicio de seguridad.")
+            st.error("Error in security service.")
 
-# --- TAB 4: AUDITORÍA ---
+# --- TAB 4: AUDITING ---
 with tab_audit:
-    st.subheader("Auditoría de Códigos de Membresía")
-    id_comp = st.number_input("ID del Comprador", min_value=1, value=26, step=1)
+    st.subheader("Membership Code Audit")
+    id_comp = st.number_input("Buyer ID", min_value=1, value=26, step=1)
     
-    if st.button("Consultar Auditoría"):
+    if st.button("Query Audit"):
         res_audit = requests.get(f"{API_BASE_URL}/membresias/codigos", params={"id_comprador": id_comp})
         if res_audit.status_code == 200:
             audit_data = res_audit.json().get('datos', [])
             if not audit_data:
-                st.info("No se encontraron códigos emitidos para este comprador.")
+                st.info("No codes found for this buyer.")
             else:
                 df_audit = pd.DataFrame(audit_data)
                 
-                # Visual summary instead of a redundant bar chart
+                # Visual summary
                 a1, a2 = st.columns(2)
                 total_codes = len(df_audit)
                 
                 with a1:
-                    st.metric("Total Códigos Emitidos", total_codes)
+                    st.metric("Total Codes Issued", total_codes)
                 with a2:
-                    st.info("Todos los códigos se encuentran en estado **EMITIDO**")
+                    st.info("All codes are currently in **ISSUED** state.")
                 
                 st.markdown("---")
                 st.dataframe(df_audit[['fecha_registro', 'codigo_seguridad', 'correo_envio', 'estado']], use_container_width=True)
         else:
-            st.error("Error al consultar el servicio de auditoría.")
+            st.error("Error querying membership audit service.")
 
 # Footer
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: #4b5563;'>© 2026 Museo Auditoria System | Confidential & Restricted Access</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #4b5563;'>© 2026 Museum Audit System | Confidential & Restricted Access</p>", unsafe_allow_html=True)

@@ -1,167 +1,182 @@
-# Museo Atrium - Microservicio de Auditoría (Cassandra + Web UI)
+# Atrium Museum - Audit Microservice (Cassandra + FastAPI + Web UI)
 
-## Requisitos
+> [!NOTE]
+> Esta documentación también está disponible en [Español (README.es.md)](README.es.md).
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y ejecutándose
-- Python 3.10 o superior
-- Entorno virtual (venv)
+Satellite microservice for the **Atrium Core Ecosystem**, responsible for immutable append-only auditing, artwork status tracking, security access logging, and periodic financial/membership reporting using **Apache Cassandra / DataStax Astra DB** and **FastAPI**.
 
-## Estructura del proyecto
+---
 
-```
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+- Python 3.10 or higher.
+- Python virtual environment tool (venv).
+
+---
+
+## Project Structure (Clean Architecture - 3 Layers)
+
+```text
 audit-python-cassandra/
-├── app/                     # Lógica de la aplicación (Repositories, Schemas, Routes)
+├── app/
+│   ├── domain/                  # Layer 1: Pure Domain Models, ABC Interfaces, Exceptions & Services
+│   │   ├── exceptions/          # Strongly-typed domain exceptions
+│   │   ├── models/              # Pure business entities
+│   │   ├── repositories/        # Abstract repository contracts
+│   │   └── services/            # Business orchestration and logic
+│   │
+│   ├── persistence/             # Layer 2: Cassandra/Astra Connection, Entities, Mappers & Repositories
+│   │   ├── config/              # Dynamic DB manager with local/cloud fallback
+│   │   ├── entities/            # Physical CQL table schemas
+│   │   ├── mappers/             # Bi-directional translators (Entity ⇄ Domain)
+│   │   └── repositories/        # Implementations using PreparedStatements & asyncio.to_thread
+│   │
+│   └── web/                     # Layer 3: FastAPI Routers, DTOs, Dependency Injection & Error Handlers
+│       ├── dependencies.py      # Dependency injection providers using Depends()
+│       ├── error_handlers.py    # Global mapping from DomainException to HTTP status codes
+│       ├── routers/             # Modular endpoints (artworks, security, memberships, reports, health)
+│       └── schemas/             # Pydantic Request & Response DTOs
+│
 ├── docker/
-│   └── docker-compose.yml   # Orquestación de contenedores
-├── scripts/
-│   ├── 0*.cql               # Estructura de tablas (Keyspace y Módulos)
-│   └── seed_*.cql           # Datos de prueba iniciales
-├── tests/                   # Pruebas de integración automatizadas
-├── main.py                  # API FastAPI
-├── requirements.txt         # Dependencias de Python
-└── README.md
+│   └── docker-compose.yml       # Container orchestration (Cassandra 4.0 + Web UI)
+├── mocks/                       # Sample request payloads and integration contracts
+├── scripts/                     # CQL Scripts (01-05 DDL schemas & seed_* initial datasets)
+├── tests/                       # Automated test suite (pytest)
+├── app_analytics.py             # Streamlit Analytics Dashboard
+├── main.py                      # FastAPI Application Assembler (Lifespan, CORS, Routers)
+├── .env.example                 # Documented environment variables
+├── pytest.ini                   # Pytest configuration (pythonpath = .)
+├── requirements.txt             # Clean UTF-8 dependencies
+├── README.md                    # Main documentation in English
+└── README.es.md                 # Spanish documentation
 ```
 
-## Paso 1: Iniciar los contenedores
+---
 
-Desde la raíz del proyecto, ejecuta:
+## Step 1: Start the Containers
+
+From the root directory of the project, run:
 
 ```powershell
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-Esto levantará tres contenedores:
+This will launch three containers:
 
-| Contenedor | Imagen | Puerto | Función |
+| Container | Image | Port | Role |
 |---|---|---|---|
-| `museo-cassandra-nodo` | `cassandra:4.0` | `9042` | Base de datos Cassandra |
-| `museo-cassandra-init` | `cassandra:4.0` | - | Inicializa esquemas y datos semilla automáticamente |
-| `museo-cassandra-web` | `delermando/docker-cassandra-web:v0.4.0` | `3000` | Interfaz web de administración |
+| `museo-cassandra-nodo` | `cassandra:4.0` | `9042` | Apache Cassandra NoSQL database |
+| `museo-cassandra-init` | `cassandra:4.0` | - | Automatically runs CQL schema creation and seed scripts |
+| `museo-cassandra-web` | `delermando/docker-cassandra-web:v0.4.0` | `3000` | Web administration UI |
 
-La primera vez descargará las imágenes, puede tomar varios minutos.
+---
 
-## Paso 2: Verificar que todo esté funcionando
+## Step 2: Verify Container Health
+
+Check that all containers started properly:
 
 ```powershell
 docker ps -a
 ```
 
-Debes ver algo similar a:
+Expected status:
+- `museo-cassandra-nodo`: `Up (healthy)`.
+- `museo-cassandra-init`: `Exited (0)` (signifies successful schema and seed migration).
+- `museo-cassandra-web`: `Up`.
 
-```
-CONTAINER ID   IMAGE                                    STATUS                        PORTS
-xxx            cassandra:4.0                            Up (healthy)                  0.0.0.0:9042->9042/tcp
-xxx            cassandra:4.0                            Exited (0)                    (init completado)
-xxx            delermando/docker-cassandra-web:v0.4.0   Up                           0.0.0.0:3000->3000/tcp
-```
+---
 
-- `museo-cassandra-nodo` debe aparecer como `(healthy)`
-- `museo-cassandra-init` debe aparecer como `Exited (0)` (indica que el keyspace y las tablas se crearon correctamente)
+## Step 3: Access CassandraDB Web UI
 
-## Paso 3: Acceder a CassandraDB Web
-
-Abre tu navegador en:
+Open your browser at:
 
 ```
 http://localhost:3000
 ```
 
-La web UI ya está preconfigurada con las siguientes credenciales:
+Pre-configured credentials:
+* **Host:** `172.20.0.10`
+* **Port:** `9042`
+* **Username:** `cassandra`
+* **Password:** `cassandra`
 
-| Campo | Valor |
-|---|---|
-| **Host** | `172.20.0.10` |
-| **Port** | `9042` |
-| **Username** | `cassandra` |
-| **Password** | `cassandra` |
+---
 
-La conexión se establece automáticamente al cargar la página. Verás el keyspace `museo_auditoria` listo para explorar.
+## Step 4: Run the Python API
 
-## Paso 4: Usar la interfaz web
-
-Una vez conectado puedes:
-
-- **Explorar keyspaces y tablas** en el panel lateral izquierdo
-- **Ejecutar consultas CQL** en la pestaña "Query"
-- **Ver datos** haciendo clic en cualquier tabla
-- **Administrar el esquema** (crear tablas, índices, etc.)
-
-## Paso 5: Ejecutar el API Python
-
-1. **Crear y activar el entorno virtual:**
+1. **Create and activate the virtual environment:**
    ```powershell
    python -m venv venv
    .\venv\Scripts\activate
    ```
 
-2. **Instalar dependencias:**
+2. **Configure environment variables:**
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   *By default, `.env` is configured to connect to the local Docker Cassandra node (`127.0.0.1:9042`). If you wish to connect to DataStax Astra DB in the cloud, specify your credentials in `.env`.*
+
+3. **Install dependencies:**
    ```powershell
    pip install -r requirements.txt
    ```
 
-3. **Iniciar el servidor:**
+4. **Start the API server:**
    ```powershell
-   uvicorn main:app --reload
+   uvicorn main:app --port 8080 --reload
    ```
 
-Accede a la documentación interactiva en: `http://127.0.0.1:8000/docs`.
+Interactive API documentation will be available at:
+* Swagger UI: `http://127.0.0.1:8080/docs`
+* ReDoc: `http://127.0.0.1:8080/redoc`
+* Health Check: `http://127.0.0.1:8080/health`
 
-## Paso 6: Ejecutar Pruebas Automatizadas
+---
 
-El proyecto incluye una suite de pruebas de integración para validar el funcionamiento de los endpoints:
+## Step 5: Analytics Dashboard (Streamlit)
+
+To launch the interactive visual dashboard for art asset intelligence and security auditing:
 
 ```powershell
-python -m pytest tests/test_api.py -v
+streamlit run app_analytics.py
 ```
 
-## Comandos útiles
+---
+
+## Step 6: Run Automated Tests
+
+Run the test suite using `pytest` (configured with `app.dependency_overrides`):
 
 ```powershell
-# Iniciar todos los contenedores
+pytest -v
+```
+
+---
+
+## Useful Commands
+
+```powershell
+# Start all containers in background
 docker compose -f docker/docker-compose.yml up -d
 
-# Ver logs del proceso de inicialización de la base de datos
+# Check schema initialization logs
 docker logs museo-cassandra-init
 
-# Detener los contenedores (sin borrar datos)
+# Stop all containers (preserving data volume)
 docker compose -f docker/docker-compose.yml down
 
-# Detener y borrar todos los datos (volumen)
+# Stop all containers and wipe data volumes
 docker compose -f docker/docker-compose.yml down -v
 
-# Conectarse a Cassandra vía cqlsh (terminal interactiva)
+# Connect to Cassandra via cqlsh interactive shell
 docker exec -it museo-cassandra-nodo cqlsh
 ```
 
-## Solución de problemas
+---
 
-### El contenedor Cassandra no se pone healthy
-```powershell
-docker logs museo-cassandra-nodo
-```
-Espera unos segundos, Cassandra puede tardar hasta 60s en inicializarse.
+## Troubleshooting
 
-### Error "unsupported release version"
-Si ves este error en la web UI, significa que la imagen `cassandra-web` es incompatible con la versión de Cassandra. Asegúrate de usar `cassandra:4.0` (no `latest`).
-
-### Error "invalid address" en web UI
-La imagen `cassandra-web` requiere una dirección IP, no un nombre de host. El `docker-compose.yml` ya asigna una IP estática (`172.20.0.10`) para evitar este problema.
-
-### Error "Unknown column" al iniciar Cassandra
-Ocurre al cambiar de versión de Cassandra con datos existentes. Solución:
-```powershell
-docker compose -f docker/docker-compose.yml down -v
-docker compose -f docker/docker-compose.yml up -d
-```
-Esto borra el volumen de datos (¡cuidado! pierdes los datos existentes).
-
-## Personalización
-
-Para cambiar el nombre del cluster, edita en `docker/docker-compose.yml`:
-
-```yaml
-environment:
-  - CASSANDRA_CLUSTER_NAME=TuNombreDeCluster
-```
-
-Para agregar tablas, modifica los archivos en la carpeta `scripts/` y reinicia con `down -v` + `up -d`.
+* **Cassandra container is not becoming healthy:** Wait a few moments; Cassandra can take up to 60 seconds to fully initialize its ring.
+* **Error "unsupported release version" in Web UI:** Ensure you are using `cassandra:4.0` as specified in `docker-compose.yml`.
+* **Error "invalid address" in Web UI:** The web UI requires a static IP address, which is already assigned (`172.20.0.10`) via the Docker custom bridge network.

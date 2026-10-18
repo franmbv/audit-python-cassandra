@@ -1,45 +1,73 @@
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+import os
 from contextlib import asynccontextmanager
-from app.config.database import conexion_cassandra
-from app.routes.membresias_routes import router as membresias_router
-from app.routes.seguridad_routes import router as seguridad_router
-from app.routes.obras_routes import router as obras_routes
-from app.routes.reportes_routes import router as reportes_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.persistence.config.database import db_cassandra
+from app.web.error_handlers import register_error_handlers
+from app.web.routers.health import router as health_router
+from app.web.routers.obras import router as obras_router
+from app.web.routers.seguridad import router as seguridad_router
+from app.web.routers.membresias import router as membresias_router
+from app.web.routers.reportes import router as reportes_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    conexion_cassandra.conectar()
+    """Application lifecycle: handles database initialization and graceful shutdown."""
+    try:
+        db_cassandra.conectar()
+    except Exception as e:
+        import logging
+        logging.getLogger("api").warning(
+            "Could not connect to Cassandra during startup. "
+            "Reconnection will be attempted on demand: %s", e
+        )
     yield
-    conexion_cassandra.cerrar()
+    db_cassandra.cerrar()
+
 
 app = FastAPI(
-    title="Museo Atrium - Microservicio de Auditoría (Cassandra)",
-    version="1.0.0",
-    lifespan=lifespan
+    title="Atrium Museum - Audit Microservice (Cassandra)",
+    description="Satellite microservice for traceability, security auditing, and analytical aggregations for Atrium Core.",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
+# CORS Middleware Configuration
+cors_origins_raw = os.getenv("CORS_ORIGINS", "*")
+origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
 
-@app.exception_handler(RequestValidationError)
-async def validacion_erronea_handler(_: Request, exc: RequestValidationError):
-    return JSONResponse(status_code=400, content={"detail": exc.errors()})
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/health", tags=["Salud"])
-async def health_check():
-    return {"status": "healthy", "service": "Cassandra Audit Service"}
+# Register domain and validation exception handlers
+register_error_handlers(app)
 
+# Include API routers
+app.include_router(health_router)
 app.include_router(seguridad_router)
-app.include_router(obras_routes)
+app.include_router(obras_router)
 app.include_router(membresias_router)
 app.include_router(reportes_router)
 
-@app.get("/")
+
+@app.get("/", tags=["Root"])
 def read_root():
-    return {"status": "online", "message": "Microservicio de Auditoría del Museo en funcionamiento"}
+    return {
+        "status": "online",
+        "service": "Museum Audit Microservice (Cassandra NoSQL)",
+        "version": "2.0.0",
+    }
+
 
 if __name__ == "__main__":
     import uvicorn
 
-    # Aquí puedes cambiar el 8080 por el puerto que necesites
-    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
+    port = int(os.getenv("PORT", "8080"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
